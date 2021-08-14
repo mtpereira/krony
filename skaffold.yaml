@@ -1,0 +1,11 @@
+apiVersion: skaffold/v2beta20
+kind: Config
+build:
+  local:
+    useBuildkit: true
+  artifacts:
+    - image: krony
+deploy:
+  kubectl:
+    manifests:
+      - k8s-*
