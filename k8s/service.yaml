@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: krony
+  labels:
+    app: krony
+spec:
+  clusterIP: None
+  ports:
+    - port: 9090
+      name: krony-http
+  selector:
+    app: krony

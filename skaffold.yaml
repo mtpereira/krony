@@ -9,3 +9,8 @@ deploy:
   kubectl:
     manifests:
       - k8s/*
+portForward:
+  - resourceType: deployment
+    resourceName: krony
+    port: krony-http
+    localPort: 9090
