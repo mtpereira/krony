@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -27,8 +28,8 @@ func connectToK8s() *kubernetes.Clientset {
 	return clientset
 }
 
-func listJobs(clientset *kubernetes.Clientset) []batchv1.Job {
-	jobs, err := clientset.BatchV1().Jobs("default").List(context.TODO(), metav1.ListOptions{})
+func listJobs(batch v1.BatchV1Interface) []batchv1.Job {
+	jobs, err := batch.Jobs("default").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		log.Panicf("main: %v", err.Error())
 	}
@@ -36,12 +37,13 @@ func listJobs(clientset *kubernetes.Clientset) []batchv1.Job {
 }
 
 type server struct {
-	Router *http.ServeMux
+	Router           *http.ServeMux
+	KubernetesClient *kubernetes.Clientset
 }
 
 func newServer() *server {
-	s := server{Router: http.NewServeMux()}
-	s.Router.HandleFunc("/jobs/list", handleListJobs())
+	s := server{Router: http.NewServeMux(), KubernetesClient: connectToK8s()}
+	s.Router.HandleFunc("/jobs/list", s.handleListJobs())
 	return &s
 }
 
@@ -49,10 +51,10 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Router.ServeHTTP(w, r)
 }
 
-func handleListJobs() http.HandlerFunc {
-	clientset := connectToK8s()
+func (s *server) handleListJobs() http.HandlerFunc {
+	batch := s.KubernetesClient.BatchV1()
 	return func(w http.ResponseWriter, r *http.Request) {
-		jobs := listJobs(clientset)
+		jobs := listJobs(batch)
 		respondWithJSON(w, http.StatusOK, jobs)
 	}
 }
